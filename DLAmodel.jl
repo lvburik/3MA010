@@ -9,7 +9,7 @@ The final lattice configuration is displayed in the console.
 
 #import necessary libraries
 using Statistics #for mean function
-
+using Plots # for plotting results
 
 
 
@@ -25,6 +25,9 @@ function DLA_Simulation(lattice_dimensions)
     center = round.(Int, lattice_dimensions/2)
     lattice[center[1],center[2]] = 1;
 
+    masses = Int[]
+    length_scales = Float64[]
+
     ## simulate
     while check_lattice(lattice, lattice_dimensions) == false
         
@@ -36,9 +39,13 @@ function DLA_Simulation(lattice_dimensions)
 
         #freeze particle in lattice
         lattice[particle.x, particle.y] = 1
+
+        #find mass and length scale of cluster
+        push!(masses, find_cluster_mass(lattice))
+        push!(length_scales, find_cluster_length_scale(lattice))
     end
 
-    return lattice
+    return lattice, masses, length_scales
 end
 
 mutable struct Particle
@@ -160,7 +167,7 @@ function find_cluster_length_scale(lattice)
     return sqrt(rg_squared)
 end
 
-function find__fractal_dimension(masses, length_scales)
+function find_fractal_dimension(masses, length_scales)
     """find fractal dimension using linear regression"""
     log_masses = log.(masses)
     log_length_scales = log.(length_scales)
@@ -176,49 +183,51 @@ function run_DLA_and_analyze(lattice_dimensions, number_of_simulations=1, displa
     """run DLA simulation and find mean cluster properties"""
 
     
-    fractal_masses = Vector{Int}(undef, number_of_simulations)
-    fractal_length_scales = Vector{Float64}(undef, number_of_simulations)
+    fractal_masses = Vector{Int}()
+    fractal_length_scales = Vector{Float64}()
 
     for ii in 1:number_of_simulations
-        lattice = DLA_Simulation(lattice_dimensions)
-        
+        lattice, masses, length_scales = DLA_Simulation(lattice_dimensions)
+        append!(fractal_masses, masses)
+        append!(fractal_length_scales, length_scales)
+
         if display_each_lattice
             display_lattice(lattice)
         end
 
-        fractal_masses[ii] = find_cluster_mass(lattice)
-        fractal_length_scales[ii] = find_cluster_length_scale(lattice)
-        
-        
     end
 
     #return mean results
-    return find__fractal_dimension(fractal_masses, fractal_length_scales), fractal_masses, fractal_length_scales
+    return find_fractal_dimension(fractal_masses, fractal_length_scales), fractal_masses, fractal_length_scales
+end
+
+function plot_DLA_results(rundla)
+    
+    mass = rundla[2]
+    length_scale = rundla[3]
+    D = rundla[1]
+    # Log-log plot of Mass vs Length Scale with regression line for D
+    scatter(log.(length_scale), log.(mass), label="Simulation Data", xlabel="log(Length Scale)", ylabel="log(Mass)", title="DLA Cluster Scaling", legend=:topleft, framestyle = :box)          # mirror y-axis ticks to the right)
+
+    # Regression line: log(M) = D * log(R) + c
+    c = mean(log.(mass)) - D * mean(log.(length_scale))
+    xfit = range(minimum(log.(length_scale)), stop=maximum(log.(length_scale)), length=100)
+    yfit = D * xfit .+ c
+    plot!(xfit, yfit, label="Fit: D = $(round(D, digits=2))", lw=2, color=:red)
+    savefig("DLA_Cluster_Scaling.png")
 end
 
 #parameters
-lattice_dimensions = [20, 20]
+lattice_dimensions = [40, 40]
 N_sims = 100
 display = false
 
 #run
 rundla = run_DLA_and_analyze(lattice_dimensions, N_sims, display)
-println("Fractal Dimension: ", mean(rundla[1]))
+println("Fractal Dimension: ", rundla[1])
 println("Mean Cluster Mass: ", mean(rundla[2]))
-println("Mean Cluster Length Scale: ", rundla[3])
+println("Mean Cluster Length Scale: ", mean(rundla[3]))
+plot_DLA_results(rundla)
 
-#extra plot of results
-using Plots
-mass = rundla[2]
-length_scale = rundla[3]
-D = rundla[1]
-# Log-log plot of Mass vs Length Scale with regression line for D
-scatter(log.(length_scale), log.(mass), label="Simulation Data", xlabel="log(Length Scale)", ylabel="log(Mass)", title="DLA Cluster Scaling", legend=:topleft)
-
-# Regression line: log(M) = D * log(R) + c
-c = mean(log.(mass)) - D * mean(log.(length_scale))
-xfit = range(minimum(log.(length_scale)), stop=maximum(log.(length_scale)), length=100)
-yfit = D * xfit .+ c
-plot!(xfit, yfit, label="Fit: D = $(round(D, digits=2))", lw=2, color=:red)
 
 
