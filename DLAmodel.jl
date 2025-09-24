@@ -11,8 +11,7 @@ The final lattice configuration is displayed in the console.
 using Statistics #for mean function
 
 
-#parameters
-lattice_dimensions = [40, 40]
+
 
 function DLA_Simulation(lattice_dimensions)
     """
@@ -26,7 +25,7 @@ function DLA_Simulation(lattice_dimensions)
     center = round.(Int, lattice_dimensions/2)
     lattice[center[1],center[2]] = 1;
 
-    ## sim
+    ## simulate
     while check_lattice(lattice, lattice_dimensions) == false
         
         particle = spawn_particle(lattice_dimensions)
@@ -194,11 +193,32 @@ function run_DLA_and_analyze(lattice_dimensions, number_of_simulations=1, displa
     end
 
     #return mean results
-    return find__fractal_dimension(fractal_masses, fractal_length_scales), mean(fractal_masses), mean(fractal_length_scales)
+    return find__fractal_dimension(fractal_masses, fractal_length_scales), fractal_masses, fractal_length_scales
 end
 
-rundla = run_DLA_and_analyze(lattice_dimensions, 1, true)
-println("Fractal Dimension: ", rundla[1])
-println("Mean Cluster Mass: ", rundla[2])
+#parameters
+lattice_dimensions = [20, 20]
+N_sims = 100
+display = false
+
+#run
+rundla = run_DLA_and_analyze(lattice_dimensions, N_sims, display)
+println("Fractal Dimension: ", mean(rundla[1]))
+println("Mean Cluster Mass: ", mean(rundla[2]))
 println("Mean Cluster Length Scale: ", rundla[3])
+
+#extra plot of results
+using Plots
+mass = rundla[2]
+length_scale = rundla[3]
+D = rundla[1]
+# Log-log plot of Mass vs Length Scale with regression line for D
+scatter(log.(length_scale), log.(mass), label="Simulation Data", xlabel="log(Length Scale)", ylabel="log(Mass)", title="DLA Cluster Scaling", legend=:topleft)
+
+# Regression line: log(M) = D * log(R) + c
+c = mean(log.(mass)) - D * mean(log.(length_scale))
+xfit = range(minimum(log.(length_scale)), stop=maximum(log.(length_scale)), length=100)
+yfit = D * xfit .+ c
+plot!(xfit, yfit, label="Fit: D = $(round(D, digits=2))", lw=2, color=:red)
+
 
