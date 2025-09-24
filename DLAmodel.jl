@@ -137,7 +137,7 @@ function display_lattice(lattice)
     # Display the lattice in the console
     for i in 1:size(lattice, 1)
         for j in 1:size(lattice, 2)
-            print(lattice[i, j] == 1 ? "█" : " ")
+            print(lattice[i, j] == 1 ? "██" : "  ")
         end
         println()
     end
@@ -197,7 +197,7 @@ function run_DLA_and_analyze(lattice_dimensions, number_of_simulations=1, displa
     return find__fractal_dimension(fractal_masses, fractal_length_scales), mean(fractal_masses), mean(fractal_length_scales)
 end
 
-rundla = run_DLA_and_analyze(lattice_dimensions, 1000)
+rundla = run_DLA_and_analyze(lattice_dimensions, 1, true)
 println("Fractal Dimension: ", rundla[1])
 println("Mean Cluster Mass: ", rundla[2])
 println("Mean Cluster Length Scale: ", rundla[3])
