@@ -5,7 +5,7 @@
 ### Functions and Structs
 ### ---------------------------------------------------------------------------------
 ### ---------------------------------------------------------------------------------
-
+using Plots
 
 struct PhysicalParameters
     N::Int                  #number of particles
@@ -99,69 +99,6 @@ function Simulate(physicalparameters, simulationparameters)
     return saved_bead_locations
 end
 
-### ---------------------------------------------------------------------------------
-### ---------------------------------------------------------------------------------
-### Simulate
-### ---------------------------------------------------------------------------------
-### ---------------------------------------------------------------------------------
-
-#define parameters
-physicalparameters = PhysicalParameters(
-    16,                     # number of particles
-    3,                      # number of dimensions
-    1.0,                    # spring constant (dimensionless)
-    1.0,                    # friction coefficient (dimensionless)
-    1.0,                    # thermal energy (dimensionless)
-)
-
-simulationparameters = SimulationParameters(
-    .001,                   # timestep
-    10000,                    # number of equilibration steps
-    1000000,                   # number of steps
-    500,                      # save location every n steps
-    true,                   # use random force
-)
-
-#run and time simulation
-@time bead_locations = Simulate(physicalparameters, simulationparameters)
-
-### ---------------------------------------------------------------------------------
-### ---------------------------------------------------------------------------------
-### Analyze results
-### ---------------------------------------------------------------------------------
-### ---------------------------------------------------------------------------------
-using Printf
-using Plots
-
-function CompareAvarageBondLenthSquared(kT, K, bead_locations)
-    theoretical_average_bond_length_squared = 3 * kT / K
-
-    # Calculate average bond length from simulation
-    total_bond_length = 0.0
-    num_bonds = 0
-    
-    # Loop through each timestep
-    for positions in bead_locations
-        # Calculate bond lengths for this timestep
-        for ii in 1:size(positions,2)-1
-            bond_vector = positions[:,ii] - positions[:,ii+1]
-            total_bond_length += sum(bond_vector.^2)
-            num_bonds += 1
-        end
-    end
-    
-    simulated_average_bond_length_squared = total_bond_length / num_bonds
-
-    # Print results
-    @printf("Theoretical average bond length^2: %.4f\n", theoretical_average_bond_length_squared)
-    @printf("Simulated average bond length^2:   %.4f\n", simulated_average_bond_length_squared)
-    @printf("Relative difference: %.2f%%\n", 100 * abs(theoretical_average_bond_length_squared - simulated_average_bond_length_squared) / theoretical_average_bond_length_squared)
-    
-    return theoretical_average_bond_length_squared, simulated_average_bond_length_squared
-end
-
-CompareAvarageBondLenthSquared(physicalparameters.kT, physicalparameters.K, bead_locations)
-
 function PlotPolymerChain(bead_locations, timestep::Int=1)
     # Get the positions at the specified timestep
     positions = bead_locations[timestep]
@@ -199,25 +136,8 @@ function PlotPolymerChain(bead_locations, timestep::Int=1)
     return p
 end
 
-# Example usage:
-# Plot initial configuration
-p1 = PlotPolymerChain(bead_locations, 1)
-display(p1)
-savefig(p1, "polymer_initial.png")
-
-# Plot final configuration
-p2 = PlotPolymerChain(bead_locations, length(bead_locations))
-display(p2)
-savefig(p2, "polymer_final.png")
-
-# Example usage:
-# Plot initial configuration
-fig1 = PlotPolymerChain(bead_locations, 1)
-display(fig1)
 
 
-# Plot final configuration
-fig2 = PlotPolymerChain(bead_locations, length(bead_locations))
-display(fig2)
+
 
 
